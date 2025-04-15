@@ -40,7 +40,7 @@ type KeyPair struct {
 
 func KeyGen(pp *PublicParams) *KeyPair {
 	sk := new(SecretKey)
-	sk.A = randomScalar()
+	sk.A = RandomScalar()
 
 	pk := new(PublicKey)
 	pk.G1toA = new(bls.G1)
