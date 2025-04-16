@@ -3,81 +3,76 @@ package samba
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/etclab/pre"
 )
 
-func GetPublicParams(proxyId InstanceId) (pp *pre.PublicParams) {
-	resp, err := http.Get(string(proxyId) + "/getPublicParams")
+func fetch[T any](fullUrl string) T {
+	u, err := url.Parse(fullUrl)
 	if err != nil {
-		log.Fatalf("Failed to fetch public parameters: %v", err)
+		panic(fmt.Sprintf("Invalid URL: %v", err))
+	}
+	resp, err := http.Get(u.String())
+	if err != nil {
+		panic(fmt.Sprintf("Failed to fetch: %v", err))
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("GetPublicParams returned non-OK status: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		panic(fmt.Sprintf("Fetching returned status %d, body: %s",
+			resp.StatusCode, body))
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&pp); err != nil {
-		log.Fatalf("Failed to decode public parameters: %v", err)
+	var t T
+	if err := json.NewDecoder(resp.Body).Decode(&t); err != nil {
+		panic(fmt.Sprintf("Failed to decode: %v", err))
 	}
-	return pp
+
+	return t
 }
 
-func RegisterPublicKey(proxyId, id InstanceId, pk pre.PublicKey) {
-	pkMsg := PublicKeyMessage{
-		InstanceId: id,
-		PublicKey:  pk,
+func FetchPublicParams(proxyId InstanceId) *pre.PublicParams {
+	fullUrl := fmt.Sprintf("%s/publicParams", proxyId)
+	m := fetch[PublicParamsSerialized](fullUrl)
+	pp, err := DeSerializePublicParams(m)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to deserialize public params: %v", err))
+	}
+	return &pp
+}
+
+func FetchPublicKey(proxyId InstanceId, functionId FunctionId) *pre.PublicKey {
+	fullUrl := fmt.Sprintf("%s/publicKey?functionId=%d", proxyId, functionId)
+	m := fetch[PublicKeySerialized](fullUrl)
+	pk, err := DeSerializePublicKey(m)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to deserialize public key: %v", err))
+	}
+	return &pk
+}
+
+func RegisterPublicKey(proxyId, instanceId InstanceId, pk *pre.PublicKey) {
+	fullUrl := fmt.Sprintf("%s/registerPublicKey?instanceId=%s", proxyId, instanceId)
+	pks := SerializePublicKey(*pk)
+	body, err := json.Marshal(pks)
+	if err != nil {
+		log.Fatalf("Failed to marshal serialized public key: %v", err)
 	}
 
-	body, err := json.Marshal(pkMsg)
+	resp, err := http.Post(fullUrl, "application/json", bytes.NewReader(body))
 	if err != nil {
-		log.Fatalf("Failed to marshal public key message: %v", err)
+		log.Fatalf("Failed to post public key: %v", err)
 	}
-	resp, err := http.Post(
-		string(proxyId)+"/registerPublicKey",
-		"application/json",
-		bytes.NewReader(body),
-	)
-	if err != nil {
-		log.Fatalf("Failed to register public key: %v", err)
-	}
+	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		log.Fatalf("RegisterPublicKey returned non-OK status: %d", resp.StatusCode)
 	}
-	defer resp.Body.Close()
-}
-
-func RequestPublicKey(proxyId InstanceId, functionId FunctionId) pre.PublicKey {
-	req := PublicKeyRequest{FunctionId: functionId}
-	reqBody, err := json.Marshal(req)
-	if err != nil {
-		log.Fatalf("Failed to Marshal public key request: %v", err)
-	}
-
-	resp, err := http.Post(string(proxyId)+"/getPublicKey", "application/json", bytes.NewReader(reqBody))
-	if err != nil {
-		log.Fatalf("Failed to send public key request: %v", err)
-	}
-
-	defer resp.Body.Close()
-	var pkMsg PublicKeyMessage
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("Failed to read response body: %v", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("RequestPublicKey returned non-OK status: %d, body: %s", resp.StatusCode, body)
-	}
-
-	if err := json.Unmarshal(body, &pkMsg); err != nil {
-		log.Fatalf("Failed to unmarshal public key response: %v", err)
-	}
-	return pkMsg.PublicKey
 }
 
 func SendMessage[T SambaMessage](m T, destId InstanceId) (response *http.Response, err error) {

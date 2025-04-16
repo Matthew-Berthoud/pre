@@ -1,4 +1,4 @@
-progs= example sender proxy alice bob
+progs= example sender alice proxy
 
 all: $(progs)
 

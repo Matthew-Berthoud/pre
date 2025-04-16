@@ -1,7 +1,6 @@
 package samba
 
 import (
-	bls "github.com/cloudflare/circl/ecc/bls12381"
 	"github.com/etclab/pre"
 )
 
@@ -19,8 +18,20 @@ Message types:
 
 */
 
-type FunctionId uint
 type InstanceId string // represents a url for now, potentially change to uint
+type FunctionId uint
+
+type FunctionMessage struct {
+	Target  FunctionId `json:"target"`
+	Message []byte     `json:"message"`
+}
+
+type SambaMessage struct {
+	IsReEncrypted bool             `json:"is_re_encrypted"`
+	WrappedKey1   *pre.Ciphertext1 `json:"wrapped_key1,omitempty"` // Encrypted bls.Gt that derives to AES key
+	WrappedKey2   *pre.Ciphertext2 `json:"wrapped_key2,omitempty"` // Re-encrypted bls.Gt that derives to AES key
+	Ciphertext    []byte           `json:"ciphertext"`             // FunctionMessage marshaled and encrypted under the AES key
+}
 
 type InstanceKeys struct {
 	PublicKey       pre.PublicKey       `json:"public_key"`
@@ -31,11 +42,6 @@ type PublicKeyRequest struct {
 	FunctionId FunctionId `json:"function_id"`
 }
 
-type PublicKeyMessage struct {
-	InstanceId InstanceId    `json:"instance_id"`
-	PublicKey  pre.PublicKey `json:"public_key"`
-}
-
 type ReEncryptionKeyRequest struct {
 	InstanceId InstanceId    `json:"instance_id"`
 	PublicKey  pre.PublicKey `json:"public_key"`
@@ -44,23 +50,4 @@ type ReEncryptionKeyRequest struct {
 type ReEncryptionKeyMessage struct {
 	InstanceId      InstanceId          `json:"instance_id"`
 	ReEncryptionKey pre.ReEncryptionKey `json:"re_encryption_key"`
-}
-
-type EncryptedMessage struct {
-	FunctionId FunctionId      `json:"function_id"`
-	Message    pre.Ciphertext1 `json:"message"`
-}
-
-type ReEncryptedMessage struct {
-	FunctionId FunctionId      `json:"function_id"`
-	Message    pre.Ciphertext2 `json:"message"`
-}
-
-type SambaMessage interface {
-	EncryptedMessage | ReEncryptedMessage
-}
-
-type SambaPlaintext struct {
-	FunctionId FunctionId `json:"function_id"`
-	Message    bls.Gt     `json:"message"`
 }

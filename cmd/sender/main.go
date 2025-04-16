@@ -1,10 +1,10 @@
 package main
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
+	//"log"
+	//"net/http"
 
 	"github.com/etclab/pre"
 	"github.com/etclab/pre/internal/samba"
@@ -14,44 +14,50 @@ const PROXY samba.InstanceId = "http://localhost:8080"
 const FUNCTION_ID samba.FunctionId = 123
 
 func main() {
-	m := pre.RandomGt()
 
 	// request public params from proxy
-	pp := samba.GetPublicParams(PROXY)
+	pp := samba.FetchPublicParams(PROXY)
 
 	// request function leader's public key from proxy
-	alicePK := samba.RequestPublicKey(PROXY, FUNCTION_ID)
+	alicePK := samba.FetchPublicKey(PROXY, FUNCTION_ID)
 
-	// encrypt message to alice
-	ct1 := pre.Encrypt(pp, m, &alicePK)
+	m := pre.RandomGt()
+	ct1 := pre.Encrypt(pp, m, alicePK)
 
-	req := samba.EncryptedMessage{
-		Message:    *ct1,
-		FunctionId: FUNCTION_ID,
-	}
+	fmt.Println(ct1)
 
-	log.Printf("MWB sender encryptedmessage: %v", req)
-
-	// send ciphertext to proxy
-	resp, err := samba.SendMessage(req, PROXY)
-	if err != nil {
-		log.Fatalf("Sending ct1 to proxy failed: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("Samba Request failed with status: %v and Response Body: %v", resp.Status, resp.Body)
-	}
-
-	var result samba.SambaPlaintext
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		log.Fatalf("Failed to decode SambaPlaintext: %v", err)
-	}
-
-	m2 := result.Message
-	didItWork := m2.IsEqual(m)
-	fmt.Println(didItWork)
-	if !didItWork {
-		fmt.Printf("ORIGINAL MESSAGE: %v\n", m)
-		fmt.Printf("ECHOED   MESSAGE: %v\n", m2)
-	}
+	//	req := samba.EncryptedMessage{
+	//		Message:    *ct1,
+	//		FunctionId: FUNCTION_ID,
+	//	}
+	//
+	// log.Printf("MWB sender encryptedmessage: %v", req)
+	//
+	// // send ciphertext to proxy
+	// resp, err := samba.SendMessage(req, PROXY)
+	//
+	//	if err != nil {
+	//		log.Fatalf("Sending ct1 to proxy failed: %v", err)
+	//	}
+	//
+	// defer resp.Body.Close()
+	//
+	//	if resp.StatusCode != http.StatusOK {
+	//		log.Fatalf("Samba Request failed with status: %v and Response Body: %v", resp.Status, resp.Body)
+	//	}
+	//
+	// var result samba.SambaPlaintext
+	//
+	//	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	//		log.Fatalf("Failed to decode SambaPlaintext: %v", err)
+	//	}
+	//
+	// m2 := result.Message
+	// didItWork := m2.IsEqual(m)
+	// fmt.Println(didItWork)
+	//
+	//	if !didItWork {
+	//		fmt.Printf("ORIGINAL MESSAGE: %v\n", m)
+	//		fmt.Printf("ECHOED   MESSAGE: %v\n", m2)
+	//	}
 }
