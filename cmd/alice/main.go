@@ -26,12 +26,14 @@ func handle1(w http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		log.Printf("Failed to read request body: %v", err)
 		return
 	}
 
 	var encMsg samba.EncryptedMessage
 	if err := json.Unmarshal(body, &encMsg); err != nil {
 		http.Error(w, "Invalid message format", http.StatusBadRequest)
+		log.Printf("Invalid message format: %v", err)
 		return
 	}
 
@@ -53,12 +55,14 @@ func genReEncryptionKey(w http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		log.Printf("Failed to read request body: %v", err)
 		return
 	}
 
 	var rkReq samba.ReEncryptionKeyRequest
 	if err := json.Unmarshal(body, &rkReq); err != nil {
 		http.Error(w, "Invalid request format", http.StatusBadRequest)
+		log.Printf("Invalid request format: %v", err)
 		return
 	}
 

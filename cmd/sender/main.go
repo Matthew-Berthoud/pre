@@ -43,7 +43,12 @@ func main() {
 	// encrypt message to alice
 	ct1 := pre.Encrypt(pp, m, &alicePK)
 
-	body, err := json.Marshal(ct1)
+	req := samba.EncryptedMessage{
+		Message:    *ct1,
+		FunctionId: FUNCTION_ID,
+	}
+
+	body, err := json.Marshal(req)
 	if err != nil {
 		log.Fatalf("failed to marshal: %v", err)
 	}
@@ -51,16 +56,16 @@ func main() {
 	// send ciphertext to proxy
 	resp, err := http.Post(string(PROXY)+"/message", "application/json", bytes.NewReader(body))
 	if err != nil {
-		log.Fatalf("request failed: %v", err)
+		log.Fatalf("Sending ct1 to proxy failed: %v", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("Request failed with status: %v and Response Body: %v", resp.Status, resp.Body)
+		log.Fatalf("Samba Request failed with status: %v and Response Body: %v", resp.Status, resp.Body)
 	}
 
 	var result samba.SambaPlaintext
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to decode SambaPlaintext: %v", err)
 	}
 
 	m1 := result.Message

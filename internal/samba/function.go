@@ -18,7 +18,7 @@ func GetPublicParams(proxyId InstanceId) (pp *pre.PublicParams) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("Received non-200 status: %d", resp.StatusCode)
+		log.Fatalf("GetPublicParams returned non-OK status: %d", resp.StatusCode)
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&pp); err != nil {
@@ -45,6 +45,9 @@ func RegisterPublicKey(proxyId, id InstanceId, pk pre.PublicKey) {
 	if err != nil {
 		log.Fatalf("Failed to register public key: %v", err)
 	}
+	if resp.StatusCode != http.StatusOK {
+		log.Fatalf("RegisterPublicKey returned non-OK status: %d", resp.StatusCode)
+	}
 	defer resp.Body.Close()
 }
 
@@ -68,7 +71,7 @@ func RequestPublicKey(proxyId InstanceId, functionId FunctionId) pre.PublicKey {
 		log.Fatalf("Failed to read response body: %v", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("Server returned non-OK status: %d, body: %s", resp.StatusCode, body)
+		log.Fatalf("RequestPublicKey returned non-OK status: %d, body: %s", resp.StatusCode, body)
 	}
 
 	if err := json.Unmarshal(body, &pkMsg); err != nil {

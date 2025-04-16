@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 
 	"io"
 	"log"
@@ -25,7 +24,8 @@ func sendPublicParams(w http.ResponseWriter, req *http.Request) {
 
 	err := json.NewEncoder(w).Encode(pp)
 	if err != nil {
-		http.Error(w, "Failed to encode public parameters", http.StatusInternalServerError)
+		http.Error(w, "Failed to encode and respond with public parameters", http.StatusInternalServerError)
+		log.Printf("Failed to encode and respond with public parameters: %v", err)
 		return
 	}
 }
@@ -35,12 +35,14 @@ func recvPublicKey(w http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		log.Printf("Failed to read request body: %v", err)
 		return
 	}
 
 	var pkMessage samba.PublicKeyMessage
 	if err := json.Unmarshal(body, &pkMessage); err != nil {
 		http.Error(w, "Invalid public key format", http.StatusBadRequest)
+		log.Printf("Invalid public key format: %v", err)
 		return
 	}
 
@@ -92,6 +94,11 @@ func genReEncryptionKey(a, b samba.InstanceId) (pre.ReEncryptionKey, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("requestReEncryptionKey request failed with status %d", resp.StatusCode)
+		return pre.ReEncryptionKey{}, err
+	}
+
 	var rkMsg samba.ReEncryptionKeyMessage
 	if err := json.NewDecoder(resp.Body).Decode(&rkMsg); err != nil {
 		return pre.ReEncryptionKey{}, err
@@ -119,12 +126,14 @@ func recvMessage(w http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		log.Printf("Failed to read request body: %v", err)
 		return
 	}
 
 	var encryptedMessage samba.EncryptedMessage
 	if err := json.Unmarshal(body, &encryptedMessage); err != nil {
 		http.Error(w, "Invalid message format", http.StatusBadRequest)
+		log.Printf("Invalid message format: %v", err)
 		return
 	}
 
@@ -138,18 +147,20 @@ func recvMessage(w http.ResponseWriter, req *http.Request) {
 		rkAB, err := genReEncryptionKey(leaderId, BOB)
 		if err != nil {
 			http.Error(w, "Failed to get re-encryption key: "+err.Error(), http.StatusInternalServerError)
+			log.Printf("Failed to get re-encryption key: %v", err)
 			return
 		}
 		ct2 := pre.ReEncrypt(pp, &rkAB, ct1)
 		m := samba.ReEncryptedMessage{Message: *ct2}
 		resp, err = sendSambaMessage(m, BOB)
 	} else {
-		m := samba.EncryptedMessage{Message: *ct1}
+		m := encryptedMessage
 		resp, err = sendSambaMessage(m, ALICE)
 	}
 
 	if err != nil {
 		http.Error(w, "Message forwarding failed: "+err.Error(), http.StatusInternalServerError)
+		log.Printf("Message forwarding failed: %v", err)
 		return
 	}
 
@@ -166,12 +177,14 @@ func sendPublicKey(w http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		log.Printf("Failed to read request body: %v", err)
 		return
 	}
 
 	var pkReq samba.PublicKeyRequest
 	if err := json.Unmarshal(body, &pkReq); err != nil {
 		http.Error(w, "Invalid message format", http.StatusBadRequest)
+		log.Printf("Invalid message format: %v", err)
 		return
 	}
 
@@ -179,6 +192,7 @@ func sendPublicKey(w http.ResponseWriter, req *http.Request) {
 	key, exists := keys[leaderId]
 	if !exists { // Adjust based on your PublicKey type
 		http.Error(w, "Function leader has no public key", http.StatusInternalServerError)
+		log.Printf("Function leader has no public key for leaderId %s", leaderId)
 		return
 	}
 
@@ -187,11 +201,10 @@ func sendPublicKey(w http.ResponseWriter, req *http.Request) {
 		PublicKey:  key.PublicKey,
 	}
 
-	fmt.Println(m)
-
 	resp, err := json.Marshal(m)
 	if err != nil {
 		http.Error(w, "Failed to marshal public key message", http.StatusInternalServerError)
+		log.Printf("Failed to marshal public key message: %v", err)
 		return
 	}
 
