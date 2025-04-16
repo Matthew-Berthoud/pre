@@ -78,7 +78,7 @@ func main() {
 	// Fetch public parameters from proxy
 	pp = samba.GetPublicParams(PROXY)
 	alice = pre.KeyGen(pp)
-	samba.RegisterPublicKey(PROXY, BOB, *alice.PK)
+	samba.RegisterPublicKey(PROXY, ALICE, *alice.PK)
 
 	http.HandleFunc("/genReEncryptionKey", genReEncryptionKey)
 

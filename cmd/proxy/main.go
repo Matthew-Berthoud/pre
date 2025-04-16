@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	//"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -46,7 +45,8 @@ func recvPublicKey(w http.ResponseWriter, req *http.Request) {
 	}
 
 	keys[pkMessage.InstanceId] = samba.InstanceKeys{
-		PublicKey: pkMessage.PublicKey,
+		PublicKey:       pkMessage.PublicKey,
+		ReEncryptionKey: pre.ReEncryptionKey{},
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -98,9 +98,9 @@ func genReEncryptionKey(a, b samba.InstanceId) (pre.ReEncryptionKey, error) {
 	}
 
 	rk := rkMsg.ReEncryptionKey
-	key := keys[rkMsg.InstanceId]
-	key.ReEncryptionKey = rk
-	keys[rkMsg.InstanceId] = key
+	instanceKeys := keys[rkMsg.InstanceId]
+	instanceKeys.ReEncryptionKey = rk
+	keys[rkMsg.InstanceId] = instanceKeys
 	return rk, nil
 }
 
@@ -108,9 +108,6 @@ func getOrSetLeader(functionId samba.FunctionId) samba.InstanceId {
 	if functionLeaders[functionId] == "" {
 		// in the real implementation there would be some better way to select a leader
 		functionLeaders[functionId] = ALICE
-		if _, exists := keys[functionLeaders[functionId]]; !exists {
-			keys[functionLeaders[functionId]] = samba.InstanceKeys{}
-		}
 	}
 	leaderId := functionLeaders[functionId]
 	log.Printf("Function with ID: %d has Leader replica with ID: %s", functionId, leaderId)

@@ -1,6 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+
 	bls "github.com/cloudflare/circl/ecc/bls12381"
 	"github.com/etclab/pre"
 	"github.com/etclab/pre/internal/samba"
@@ -35,12 +41,28 @@ func main() {
 	alicePK := samba.RequestPublicKey(PROXY, FUNCTION_ID)
 
 	// encrypt message to alice
+	ct1 := pre.Encrypt(pp, m, &alicePK)
 
-	//ct1 := pre.Encrypt(pp, m, &alicePK)
-	pre.Encrypt(pp, m, &alicePK)
+	body, err := json.Marshal(ct1)
+	if err != nil {
+		log.Fatalf("failed to marshal: %v", err)
+	}
 
 	// send ciphertext to proxy
+	resp, err := http.Post(string(PROXY)+"/message", "application/json", bytes.NewReader(body))
+	if err != nil {
+		log.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		log.Fatalf("Request failed with status: %v and Response Body: %v", resp.Status, resp.Body)
+	}
 
-	// wait for response from proxy
-	// print response
+	var result samba.SambaPlaintext
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		log.Fatal(err)
+	}
+
+	m1 := result.Message
+	fmt.Println(m1.IsEqual(m))
 }
