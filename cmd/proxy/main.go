@@ -39,7 +39,8 @@ func recvPublicKey(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	instanceId := samba.InstanceId(req.PathValue("instanceId"))
+	queries := req.URL.Query()
+	instanceId := samba.InstanceId(queries.Get("instanceId"))
 	setPublicKey(instanceId, pk)
 	log.Printf("Successfully storing public key for instanceId: %s", instanceId)
 
@@ -137,7 +138,6 @@ func getOrSetLeader(functionId samba.FunctionId) samba.InstanceId {
 //		return
 //	}
 //
-//	log.Printf("MWB proxy recvMessage encryptedMessage: %v", encryptedMessage.Message)
 //	functionId := encryptedMessage.FunctionId
 //	leaderId := getOrSetLeader(functionId)
 //
@@ -173,8 +173,9 @@ func getOrSetLeader(functionId samba.FunctionId) samba.InstanceId {
 //	}
 //}
 
-func sendPublicKey(w http.ResponseWriter, req *http.Request) {
-	functionId, err := strconv.ParseUint(req.PathValue("functionId"), 10, 64)
+func handlePublicKeyRequest(w http.ResponseWriter, req *http.Request) {
+	queries := req.URL.Query()
+	functionId, err := strconv.ParseUint(queries.Get("functionId"), 10, 64)
 	if err != nil {
 		fmt.Println("Error parsing string to uint:", err)
 		return
@@ -206,7 +207,7 @@ func sendPublicKey(w http.ResponseWriter, req *http.Request) {
 func main() {
 	http.HandleFunc("/publicParams", sendPublicParams)
 	http.HandleFunc("/registerPublicKey", recvPublicKey)
-	http.HandleFunc("/publicKey", sendPublicKey)
+	http.HandleFunc("/publicKey", handlePublicKeyRequest)
 	//http.HandleFunc("/message", recvMessage)
 	log.Println("Proxy service running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

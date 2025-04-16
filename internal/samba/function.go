@@ -49,6 +49,7 @@ func FetchPublicParams(proxyId InstanceId) *pre.PublicParams {
 
 func FetchPublicKey(proxyId InstanceId, functionId FunctionId) *pre.PublicKey {
 	fullUrl := fmt.Sprintf("%s/publicKey?functionId=%d", proxyId, functionId)
+	fmt.Println(fullUrl)
 	m := fetch[PublicKeySerialized](fullUrl)
 	pk, err := DeSerializePublicKey(m)
 	if err != nil {
@@ -59,6 +60,7 @@ func FetchPublicKey(proxyId InstanceId, functionId FunctionId) *pre.PublicKey {
 
 func RegisterPublicKey(proxyId, instanceId InstanceId, pk *pre.PublicKey) {
 	fullUrl := fmt.Sprintf("%s/registerPublicKey?instanceId=%s", proxyId, instanceId)
+	fmt.Println(fullUrl)
 	pks := SerializePublicKey(*pk)
 	body, err := json.Marshal(pks)
 	if err != nil {
