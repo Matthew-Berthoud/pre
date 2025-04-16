@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 
 	"io"
 	"log"
@@ -95,8 +96,7 @@ func genReEncryptionKey(a, b samba.InstanceId) (pre.ReEncryptionKey, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Printf("requestReEncryptionKey request failed with status %d", resp.StatusCode)
-		return pre.ReEncryptionKey{}, err
+		return pre.ReEncryptionKey{}, fmt.Errorf("requestReEncryptionKey failed with status %d", resp.StatusCode)
 	}
 
 	var rkMsg samba.ReEncryptionKeyMessage

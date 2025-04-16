@@ -84,7 +84,7 @@ func main() {
 	alice = pre.KeyGen(pp)
 	samba.RegisterPublicKey(PROXY, ALICE, *alice.PK)
 
-	http.HandleFunc("/genReEncryptionKey", genReEncryptionKey)
+	http.HandleFunc("/requestReEncryptionKey", genReEncryptionKey)
 
 	http.HandleFunc("/message", handle1)
 
