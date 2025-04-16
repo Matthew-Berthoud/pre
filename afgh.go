@@ -1,15 +1,8 @@
 package pre
 
 import (
-	"crypto/rand"
 	bls "github.com/cloudflare/circl/ecc/bls12381"
 )
-
-func randomScalar() *bls.Scalar {
-	z := new(bls.Scalar)
-	z.Random(rand.Reader)
-	return z
-}
 
 type PublicParams struct {
 	G1 *bls.G1
