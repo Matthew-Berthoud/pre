@@ -3,6 +3,9 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+
+	//"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -15,7 +18,7 @@ const ALICE samba.InstanceId = "http://localhost:8081"
 const BOB samba.InstanceId = "http://localhost:8082"
 
 var pp *pre.PublicParams = pre.NewPublicParams()
-var keys = make(map[samba.InstanceId]*samba.InstanceKeys)
+var keys = make(map[samba.InstanceId]samba.InstanceKeys)
 var functionLeaders = make(map[samba.FunctionId]samba.InstanceId)
 
 func sendPublicParams(w http.ResponseWriter, req *http.Request) {
@@ -42,7 +45,9 @@ func recvPublicKey(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	keys[pkMessage.InstanceId].PublicKey = pkMessage.PublicKey
+	keys[pkMessage.InstanceId] = samba.InstanceKeys{
+		PublicKey: pkMessage.PublicKey,
+	}
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -93,8 +98,23 @@ func genReEncryptionKey(a, b samba.InstanceId) (pre.ReEncryptionKey, error) {
 	}
 
 	rk := rkMsg.ReEncryptionKey
-	keys[rkMsg.InstanceId].ReEncryptionKey = rk
+	key := keys[rkMsg.InstanceId]
+	key.ReEncryptionKey = rk
+	keys[rkMsg.InstanceId] = key
 	return rk, nil
+}
+
+func getOrSetLeader(functionId samba.FunctionId) samba.InstanceId {
+	if functionLeaders[functionId] == "" {
+		// in the real implementation there would be some better way to select a leader
+		functionLeaders[functionId] = ALICE
+		if _, exists := keys[functionLeaders[functionId]]; !exists {
+			keys[functionLeaders[functionId]] = samba.InstanceKeys{}
+		}
+	}
+	leaderId := functionLeaders[functionId]
+	log.Printf("Function with ID: %d has Leader replica with ID: %s", functionId, leaderId)
+	return leaderId
 }
 
 func recvMessage(w http.ResponseWriter, req *http.Request) {
@@ -112,7 +132,7 @@ func recvMessage(w http.ResponseWriter, req *http.Request) {
 	}
 
 	functionId := encryptedMessage.FunctionId
-	leaderId := functionLeaders[functionId]
+	leaderId := getOrSetLeader(functionId)
 
 	ct1 := &encryptedMessage.Message
 
@@ -144,9 +164,49 @@ func recvMessage(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func sendPublicKey(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+
+	var pkReq samba.PublicKeyRequest
+	if err := json.Unmarshal(body, &pkReq); err != nil {
+		http.Error(w, "Invalid message format", http.StatusBadRequest)
+		return
+	}
+
+	leaderId := getOrSetLeader(pkReq.FunctionId)
+	key, exists := keys[leaderId]
+	if !exists { // Adjust based on your PublicKey type
+		http.Error(w, "Function leader has no public key", http.StatusInternalServerError)
+		return
+	}
+
+	m := samba.PublicKeyMessage{
+		InstanceId: leaderId,
+		PublicKey:  key.PublicKey,
+	}
+
+	fmt.Println(m)
+
+	resp, err := json.Marshal(m)
+	if err != nil {
+		http.Error(w, "Failed to marshal public key message", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(resp)
+}
+
 func main() {
 	http.HandleFunc("/getPublicParams", sendPublicParams)
 	http.HandleFunc("/registerPublicKey", recvPublicKey)
+	http.HandleFunc("/getPublicKey", sendPublicKey)
 	http.HandleFunc("/message", recvMessage)
-	http.ListenAndServe(":8080", nil)
+	log.Println("Proxy service running on :8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }

@@ -3,6 +3,7 @@ package samba
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 
@@ -61,9 +62,17 @@ func RequestPublicKey(proxyId InstanceId, functionId FunctionId) pre.PublicKey {
 
 	defer resp.Body.Close()
 	var pkMsg PublicKeyMessage
-	if err := json.NewDecoder(resp.Body).Decode(&pkMsg); err != nil {
-		log.Fatalf("Failed to decode public key response: %v", err)
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalf("Failed to read response body: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		log.Fatalf("Server returned non-OK status: %d, body: %s", resp.StatusCode, body)
 	}
 
+	if err := json.Unmarshal(body, &pkMsg); err != nil {
+		log.Fatalf("Failed to unmarshal public key response: %v", err)
+	}
 	return pkMsg.PublicKey
 }
