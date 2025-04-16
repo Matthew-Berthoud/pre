@@ -16,11 +16,9 @@ Matthew Green, Susan Hohenberger, NDSS 2025
 ### Distributed system example (samba-lite)
 - alice, bob, proxy, and sender in `cmd/`
 - TODO:
-    - keep logging the plaintext in as many places as you can and see where I went wrong.
-    - add additional decryptions if need be
-    - maybe the public parameters are getting sent wrong?
+    - make it work for the non-re-encryption case (alice decrypts, alice is not busy) with the new struct and AES stuff
+    - make it work for the re-encryption case
 - for performance evalutation:
     - individually benchmark the afgh api calls, basically
     - RSAwrapping(AES+messsage) vs. AFGHwrapping(AES+messsage)
-
 
