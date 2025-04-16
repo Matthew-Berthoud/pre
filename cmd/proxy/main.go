@@ -59,20 +59,6 @@ func aliceBusy() bool {
 	return true
 }
 
-func sendSambaMessage[T samba.SambaMessage](m T, destId samba.InstanceId) (response *http.Response, err error) {
-	reqBody, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := http.Post(string(destId)+"/message", "application/json", bytes.NewBuffer(reqBody))
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
 func genReEncryptionKey(a, b samba.InstanceId) (pre.ReEncryptionKey, error) {
 	if keys[b].ReEncryptionKey != (pre.ReEncryptionKey{}) {
 		return keys[b].ReEncryptionKey, nil
@@ -137,6 +123,7 @@ func recvMessage(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	log.Printf("MWB proxy recvMessage encryptedMessage: %v", encryptedMessage.Message)
 	functionId := encryptedMessage.FunctionId
 	leaderId := getOrSetLeader(functionId)
 
@@ -152,10 +139,10 @@ func recvMessage(w http.ResponseWriter, req *http.Request) {
 		}
 		ct2 := pre.ReEncrypt(pp, &rkAB, ct1)
 		m := samba.ReEncryptedMessage{Message: *ct2}
-		resp, err = sendSambaMessage(m, BOB)
+		resp, err = samba.SendMessage(m, BOB)
 	} else {
 		m := encryptedMessage
-		resp, err = sendSambaMessage(m, ALICE)
+		resp, err = samba.SendMessage(m, ALICE)
 	}
 
 	if err != nil {

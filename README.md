@@ -20,3 +20,8 @@ Matthew Green, Susan Hohenberger, NDSS 2025
     - add additional decryptions if need be
     - maybe the public parameters are getting sent wrong?
 
+- for performance evalutation:
+    - individually benchmark the afgh api calls, basically
+    - RSAwrapping(AES+messsage) vs. AFGHwrapping(AES+messsage)
+
+

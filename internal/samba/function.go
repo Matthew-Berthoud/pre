@@ -79,3 +79,17 @@ func RequestPublicKey(proxyId InstanceId, functionId FunctionId) pre.PublicKey {
 	}
 	return pkMsg.PublicKey
 }
+
+func SendMessage[T SambaMessage](m T, destId InstanceId) (response *http.Response, err error) {
+	reqBody, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.Post(string(destId)+"/message", "application/json", bytes.NewBuffer(reqBody))
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
+}

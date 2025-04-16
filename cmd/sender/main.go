@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -30,8 +29,6 @@ func randomGt() *bls.Gt {
 }
 
 func main() {
-	// NOTE: obviously this isn't plaintext, how to make this work on normal plaintext again?
-	// Look back at lily's rust implementation, I think I made some notes there.
 	m := randomGt()
 
 	// request public params from proxy
@@ -48,13 +45,10 @@ func main() {
 		FunctionId: FUNCTION_ID,
 	}
 
-	body, err := json.Marshal(req)
-	if err != nil {
-		log.Fatalf("failed to marshal: %v", err)
-	}
+	log.Printf("MWB sender encryptedmessage: %v", req)
 
 	// send ciphertext to proxy
-	resp, err := http.Post(string(PROXY)+"/message", "application/json", bytes.NewReader(body))
+	resp, err := samba.SendMessage(req, PROXY)
 	if err != nil {
 		log.Fatalf("Sending ct1 to proxy failed: %v", err)
 	}

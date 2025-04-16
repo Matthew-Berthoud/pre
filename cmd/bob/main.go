@@ -36,10 +36,12 @@ func handle2(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	log.Printf("MWB bob re-encrypted message: %v", reMsg)
+
 	// Decrypt re-encrypted message
 	decrypted := pre.Decrypt2(pp, &reMsg.Message, bob.SK)
 
-	log.Printf("Bob sending re-encrypted message: %v", decrypted)
+	log.Printf("MWB Bob sending re-encrypted message: %v", decrypted)
 
 	// Create response struct
 	response := samba.SambaPlaintext{Message: *decrypted}

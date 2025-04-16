@@ -23,37 +23,37 @@ type FunctionId uint
 type InstanceId string // represents a url for now, potentially change to uint
 
 type InstanceKeys struct {
-	PublicKey       pre.PublicKey
-	ReEncryptionKey pre.ReEncryptionKey
+	PublicKey       pre.PublicKey       `json:"public_key"`
+	ReEncryptionKey pre.ReEncryptionKey `json:"re_encryption_key"`
 }
 
 type PublicKeyRequest struct {
-	FunctionId FunctionId
+	FunctionId FunctionId `json:"function_id"`
 }
 
 type PublicKeyMessage struct {
-	InstanceId InstanceId
-	PublicKey  pre.PublicKey
+	InstanceId InstanceId    `json:"instance_id"`
+	PublicKey  pre.PublicKey `json:"public_key"`
 }
 
 type ReEncryptionKeyRequest struct {
-	InstanceId InstanceId
-	PublicKey  pre.PublicKey
+	InstanceId InstanceId    `json:"instance_id"`
+	PublicKey  pre.PublicKey `json:"public_key"`
 }
 
 type ReEncryptionKeyMessage struct {
-	InstanceId      InstanceId
-	ReEncryptionKey pre.ReEncryptionKey
+	InstanceId      InstanceId          `json:"instance_id"`
+	ReEncryptionKey pre.ReEncryptionKey `json:"re_encryption_key"`
 }
 
 type EncryptedMessage struct {
-	FunctionId FunctionId
-	Message    pre.Ciphertext1
+	FunctionId FunctionId      `json:"function_id"`
+	Message    pre.Ciphertext1 `json:"message"`
 }
 
 type ReEncryptedMessage struct {
-	FunctionId FunctionId
-	Message    pre.Ciphertext2
+	FunctionId FunctionId      `json:"function_id"`
+	Message    pre.Ciphertext2 `json:"message"`
 }
 
 type SambaMessage interface {
@@ -61,6 +61,6 @@ type SambaMessage interface {
 }
 
 type SambaPlaintext struct {
-	FunctionId FunctionId
-	Message    bls.Gt
+	FunctionId FunctionId `json:"function_id"`
+	Message    bls.Gt     `json:"message"`
 }
