@@ -16,6 +16,7 @@ Matthew Green, Susan Hohenberger, NDSS 2025
 ### Distributed system example (samba-lite)
 - alice, bob, proxy, and sender in `cmd/`
 - TODO:
-    - go through all http response handlers, and make them catch and log any errors.
-    - debug until operational!
+    - keep logging the plaintext in as many places as you can and see where I went wrong.
+    - add additional decryptions if need be
+    - maybe the public parameters are getting sent wrong?
 

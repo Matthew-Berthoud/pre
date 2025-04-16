@@ -68,6 +68,11 @@ func main() {
 		log.Fatalf("Failed to decode SambaPlaintext: %v", err)
 	}
 
-	m1 := result.Message
-	fmt.Println(m1.IsEqual(m))
+	m2 := result.Message
+	didItWork := m2.IsEqual(m)
+	fmt.Println(didItWork)
+	if !didItWork {
+		fmt.Printf("ORIGINAL MESSAGE: %v\n", m)
+		fmt.Printf("ECHOED   MESSAGE: %v\n", m2)
+	}
 }

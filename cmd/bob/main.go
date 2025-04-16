@@ -19,21 +19,27 @@ var (
 )
 
 func handle2(w http.ResponseWriter, req *http.Request) {
+	log.Printf("Bob handling re-encrypted message")
+
 	defer req.Body.Close()
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		log.Printf("Failed to read request body: %v", err)
 		return
 	}
 
 	var reMsg samba.ReEncryptedMessage
 	if err := json.Unmarshal(body, &reMsg); err != nil {
 		http.Error(w, "Invalid message format", http.StatusBadRequest)
+		log.Printf("Invalid message format: %v", err)
 		return
 	}
 
 	// Decrypt re-encrypted message
 	decrypted := pre.Decrypt2(pp, &reMsg.Message, bob.SK)
+
+	log.Printf("Bob sending re-encrypted message: %v", decrypted)
 
 	// Create response struct
 	response := samba.SambaPlaintext{Message: *decrypted}
