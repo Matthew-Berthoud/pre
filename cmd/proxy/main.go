@@ -4,6 +4,7 @@ import (
 	//"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strconv"
 
 	//"io"
@@ -112,66 +113,80 @@ func sendPublicParams(w http.ResponseWriter, req *http.Request) {
 //	return rk, nil
 //}
 
-func getOrSetLeader(functionId samba.FunctionId) samba.InstanceId {
+func getOrSetLeader(functionId samba.FunctionId) (samba.InstanceId, error) {
+	if functionId == 0 {
+		return "", fmt.Errorf("function ID cannot be 0")
+	}
 	if functionLeaders[functionId] == "" {
 		// in the real implementation there would be some better way to select a leader
 		functionLeaders[functionId] = ALICE
+		log.Println("setting alice to function leader")
 	}
 	leaderId := functionLeaders[functionId]
-	log.Printf("Function with ID: %d has Leader replica with ID: %s", functionId, leaderId)
-	return leaderId
+	return leaderId, nil
 }
 
-//func recvMessage(w http.ResponseWriter, req *http.Request) {
-//	defer req.Body.Close()
-//	body, err := io.ReadAll(req.Body)
-//	if err != nil {
-//		http.Error(w, "Failed to read request body", http.StatusBadRequest)
-//		log.Printf("Failed to read request body: %v", err)
-//		return
-//	}
-//
-//	var encryptedMessage samba.EncryptedMessage
-//	if err := json.Unmarshal(body, &encryptedMessage); err != nil {
-//		http.Error(w, "Invalid message format", http.StatusBadRequest)
-//		log.Printf("Invalid message format: %v", err)
-//		return
-//	}
-//
-//	functionId := encryptedMessage.FunctionId
-//	leaderId := getOrSetLeader(functionId)
-//
-//	ct1 := &encryptedMessage.Message
-//
-//	var resp *http.Response
-//	if aliceBusy() {
-//		rkAB, err := genReEncryptionKey(leaderId, BOB)
-//		if err != nil {
-//			http.Error(w, "Failed to get re-encryption key: "+err.Error(), http.StatusInternalServerError)
-//			log.Printf("Failed to get re-encryption key: %v", err)
-//			return
-//		}
-//		ct2 := pre.ReEncrypt(pp, &rkAB, ct1)
-//		m := samba.ReEncryptedMessage{Message: *ct2}
-//		resp, err = samba.SendMessage(m, BOB)
-//	} else {
-//		m := encryptedMessage
-//		resp, err = samba.SendMessage(m, ALICE)
-//	}
-//
-//	if err != nil {
-//		http.Error(w, "Message forwarding failed: "+err.Error(), http.StatusInternalServerError)
-//		log.Printf("Message forwarding failed: %v", err)
-//		return
-//	}
-//
-//	// Forward final response to original sender
-//	defer resp.Body.Close()
-//	w.WriteHeader(resp.StatusCode)
-//	if _, err := io.Copy(w, resp.Body); err != nil {
-//		log.Printf("Failed to write response body: %v", err)
-//	}
-//}
+func loadBalance(m samba.SambaMessage) (samba.SambaMessage, samba.InstanceId, error) {
+	leaderId, err := getOrSetLeader(m.Target)
+	if err != nil {
+		return samba.SambaMessage{}, "", err
+	}
+	// for now, just let Alice handle it
+	return m, leaderId, nil
+}
+
+func recvMessage(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		log.Printf("Failed to read request body: %v", err)
+		return
+	}
+
+	var m samba.SambaMessage
+	if err := json.Unmarshal(body, &m); err != nil {
+		http.Error(w, "Invalid message format", http.StatusBadRequest)
+		log.Printf("Invalid message format: %v", err)
+		return
+	}
+
+	m, instanceId, err := loadBalance(m)
+	if err != nil {
+		http.Error(w, "Load balancing failed", http.StatusInternalServerError)
+		log.Printf("Load balancing failed: %v", err)
+	}
+
+	resp, err := samba.SendMessage(m, instanceId)
+
+	//	var resp *http.Response
+	//	if aliceBusy() {
+	//		rkAB, err := genReEncryptionKey(leaderId, BOB)
+	//		if err != nil {
+	//			http.Error(w, "Failed to get re-encryption key: "+err.Error(), http.StatusInternalServerError)
+	//			log.Printf("Failed to get re-encryption key: %v", err)
+	//			return
+	//		}
+	//		ct2 := pre.ReEncrypt(pp, &rkAB, ct1)
+	//		m := samba.ReEncryptedMessage{Message: *ct2}
+	//		resp, err = samba.SendMessage(m, BOB)
+	//	} else {
+	//		m := encryptedMessage
+	//		resp, err = samba.SendMessage(m, ALICE)
+	//	}
+
+	if err != nil {
+		http.Error(w, "Message forwarding failed: "+err.Error(), http.StatusInternalServerError)
+		log.Printf("Message forwarding failed: %v", err)
+		return
+	}
+
+	defer resp.Body.Close()
+	w.WriteHeader(resp.StatusCode)
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		log.Printf("Failed to write response body: %v", err)
+	}
+}
 
 func handlePublicKeyRequest(w http.ResponseWriter, req *http.Request) {
 	queries := req.URL.Query()
@@ -181,7 +196,10 @@ func handlePublicKeyRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	leaderId := getOrSetLeader(samba.FunctionId(functionId))
+	leaderId, err := getOrSetLeader(samba.FunctionId(functionId))
+	if err != nil {
+
+	}
 	leaderKeys, exists := keys[leaderId]
 	if !exists {
 		http.Error(w, "Function leader has no public key", http.StatusInternalServerError)
@@ -208,7 +226,7 @@ func main() {
 	http.HandleFunc("/publicParams", sendPublicParams)
 	http.HandleFunc("/registerPublicKey", recvPublicKey)
 	http.HandleFunc("/publicKey", handlePublicKeyRequest)
-	//http.HandleFunc("/message", recvMessage)
+	http.HandleFunc("/message", recvMessage)
 	log.Println("Proxy service running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

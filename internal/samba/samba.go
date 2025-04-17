@@ -21,16 +21,12 @@ Message types:
 type InstanceId string // represents a url for now, potentially change to uint
 type FunctionId uint
 
-type FunctionMessage struct {
-	Target  FunctionId `json:"target"`
-	Message []byte     `json:"message"`
-}
-
 type SambaMessage struct {
-	IsReEncrypted bool             `json:"is_re_encrypted"`
-	WrappedKey1   *pre.Ciphertext1 `json:"wrapped_key1,omitempty"` // Encrypted bls.Gt that derives to AES key
-	WrappedKey2   *pre.Ciphertext2 `json:"wrapped_key2,omitempty"` // Re-encrypted bls.Gt that derives to AES key
-	Ciphertext    []byte           `json:"ciphertext"`             // FunctionMessage marshaled and encrypted under the AES key
+	Target        FunctionId            `json:"target"`
+	IsReEncrypted bool                  `json:"is_re_encrypted"`
+	WrappedKey1   Ciphertext1Serialized `json:"wrapped_key1,omitempty"` // Encrypted bls.Gt that derives to AES key
+	WrappedKey2   Ciphertext2Serialized `json:"wrapped_key2,omitempty"` // Re-encrypted bls.Gt that derives to AES key
+	Ciphertext    []byte                `json:"ciphertext"`             // plaintext (just a string for now) encrypted under the AES key
 }
 
 type InstanceKeys struct {
