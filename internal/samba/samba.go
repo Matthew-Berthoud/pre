@@ -39,11 +39,11 @@ type PublicKeyRequest struct {
 }
 
 type ReEncryptionKeyRequest struct {
-	InstanceId InstanceId    `json:"instance_id"`
-	PublicKey  pre.PublicKey `json:"public_key"`
+	InstanceId         InstanceId          `json:"instance_id"`
+	PublicKeySerialzed PublicKeySerialized `json:"public_key_serialized"`
 }
 
 type ReEncryptionKeyMessage struct {
-	InstanceId      InstanceId          `json:"instance_id"`
-	ReEncryptionKey pre.ReEncryptionKey `json:"re_encryption_key"`
+	InstanceId                InstanceId                `json:"instance_id"`
+	ReEncryptionKeySerialized ReEncryptionKeySerialized `json:"re_encryption_key_serialized"`
 }

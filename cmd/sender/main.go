@@ -43,7 +43,7 @@ func main() {
 		WrappedKey1:   ct1s,
 		Ciphertext:    ct,
 	}
-	resp, err := samba.SendMessage(req, PROXY)
+	resp, err := samba.SendMessage(&req, PROXY)
 	if err != nil {
 		log.Fatalf("Sending to proxy failed: %v", err)
 	}

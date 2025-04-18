@@ -170,3 +170,26 @@ func DeSerializeCiphertext2(ct2s Ciphertext2Serialized) (pre.Ciphertext2, error)
 	}
 	return ct2, nil
 }
+
+type ReEncryptionKeySerialized struct {
+	RK []byte
+}
+
+func SerializeReEncryptionKey(rk pre.ReEncryptionKey) ReEncryptionKeySerialized {
+	return ReEncryptionKeySerialized{
+		RK: rk.RK.Bytes(),
+	}
+}
+
+func DeSerializeReEncryptionKey(rks ReEncryptionKeySerialized) (pre.ReEncryptionKey, error) {
+	g2 := &bls.G2{}
+	err := g2.SetBytes(rks.RK)
+	if err != nil {
+		return pre.ReEncryptionKey{}, err
+	}
+
+	rk := pre.ReEncryptionKey{
+		RK: g2,
+	}
+	return rk, nil
+}

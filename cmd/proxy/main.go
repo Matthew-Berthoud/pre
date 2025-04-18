@@ -1,13 +1,12 @@
 package main
 
 import (
-	//"bytes"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
 
-	//"io"
 	"log"
 	"net/http"
 
@@ -71,47 +70,47 @@ func sendPublicParams(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-//func aliceBusy() bool {
-//	return true
-//}
-//
-//func genReEncryptionKey(a, b samba.InstanceId) (pre.ReEncryptionKey, error) {
-//	if keys[b].ReEncryptionKey != (pre.ReEncryptionKey{}) {
-//		return keys[b].ReEncryptionKey, nil
-//	}
-//
-//	pk := keys[b].PublicKey
-//
-//	req := samba.ReEncryptionKeyRequest{
-//		InstanceId: b,
-//		PublicKey:  pk,
-//	}
-//	body, err := json.Marshal(req)
-//	if err != nil {
-//		return pre.ReEncryptionKey{}, err
-//	}
-//
-//	resp, err := http.Post(string(a)+"/requestReEncryptionKey", "application/json", bytes.NewReader(body))
-//	if err != nil {
-//		return pre.ReEncryptionKey{}, err
-//	}
-//	defer resp.Body.Close()
-//
-//	if resp.StatusCode != http.StatusOK {
-//		return pre.ReEncryptionKey{}, fmt.Errorf("requestReEncryptionKey failed with status %d", resp.StatusCode)
-//	}
-//
-//	var rkMsg samba.ReEncryptionKeyMessage
-//	if err := json.NewDecoder(resp.Body).Decode(&rkMsg); err != nil {
-//		return pre.ReEncryptionKey{}, err
-//	}
-//
-//	rk := rkMsg.ReEncryptionKey
-//	instanceKeys := keys[rkMsg.InstanceId]
-//	instanceKeys.ReEncryptionKey = rk
-//	keys[rkMsg.InstanceId] = instanceKeys
-//	return rk, nil
-//}
+func genReEncryptionKey(a, b samba.InstanceId) (pre.ReEncryptionKey, error) {
+	if keys[b].ReEncryptionKey != (pre.ReEncryptionKey{}) {
+		return keys[b].ReEncryptionKey, nil
+	}
+
+	pks := samba.SerializePublicKey(keys[b].PublicKey)
+
+	req := samba.ReEncryptionKeyRequest{
+		InstanceId:         b,
+		PublicKeySerialzed: pks,
+	}
+	body, err := json.Marshal(req)
+	if err != nil {
+		return pre.ReEncryptionKey{}, err
+	}
+
+	resp, err := http.Post(string(a)+"/requestReEncryptionKey", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return pre.ReEncryptionKey{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return pre.ReEncryptionKey{}, fmt.Errorf("requestReEncryptionKey failed with status %d", resp.StatusCode)
+	}
+
+	var rkMsg samba.ReEncryptionKeyMessage
+	if err := json.NewDecoder(resp.Body).Decode(&rkMsg); err != nil {
+		return pre.ReEncryptionKey{}, err
+	}
+
+	rk, err := samba.DeSerializeReEncryptionKey(rkMsg.ReEncryptionKeySerialized)
+	if err != nil {
+		return pre.ReEncryptionKey{}, err
+	}
+
+	instanceKeys := keys[rkMsg.InstanceId]
+	instanceKeys.ReEncryptionKey = rk
+	keys[rkMsg.InstanceId] = instanceKeys
+	return rk, nil
+}
 
 func getOrSetLeader(functionId samba.FunctionId) (samba.InstanceId, error) {
 	if functionId == 0 {
@@ -126,13 +125,37 @@ func getOrSetLeader(functionId samba.FunctionId) (samba.InstanceId, error) {
 	return leaderId, nil
 }
 
-func loadBalance(m samba.SambaMessage) (samba.SambaMessage, samba.InstanceId, error) {
-	leaderId, err := getOrSetLeader(m.Target)
+func getAvailabileInstance(functionId samba.FunctionId) samba.InstanceId {
+	//return ALICE
+	return BOB
+}
+
+func reEncrypt(m1 *samba.SambaMessage, leaderId, instanceId samba.InstanceId) (*samba.SambaMessage, error) {
+	rkAB, err := genReEncryptionKey(leaderId, instanceId)
 	if err != nil {
-		return samba.SambaMessage{}, "", err
+		return nil, err
 	}
-	// for now, just let Alice handle it
-	return m, leaderId, nil
+
+	ct1, err := samba.DeSerializeCiphertext1(m1.WrappedKey1)
+	if err != nil {
+		return nil, err
+	}
+
+	ct2 := pre.ReEncrypt(pp, &rkAB, &ct1)
+
+	wk2, err := samba.SerializeCiphertext2(*ct2)
+	if err != nil {
+		return nil, err
+	}
+
+	m2 := samba.SambaMessage{
+		Target:        m1.Target,
+		IsReEncrypted: true,
+		WrappedKey2:   wk2,
+		Ciphertext:    m1.Ciphertext,
+	}
+
+	return &m2, nil
 }
 
 func recvMessage(w http.ResponseWriter, req *http.Request) {
@@ -151,30 +174,25 @@ func recvMessage(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	m, instanceId, err := loadBalance(m)
+	leaderId, err := getOrSetLeader(m.Target)
 	if err != nil {
-		http.Error(w, "Load balancing failed", http.StatusInternalServerError)
-		log.Printf("Load balancing failed: %v", err)
+		http.Error(w, "failed to get or set leader", http.StatusInternalServerError)
+		log.Printf("failed to get or set leader: %v", err)
+		return
 	}
 
-	resp, err := samba.SendMessage(m, instanceId)
+	instanceId := getAvailabileInstance(m.Target)
+	if instanceId != leaderId {
+		m2, err := reEncrypt(&m, leaderId, instanceId)
+		if err != nil {
+			http.Error(w, "reEncryption failed", http.StatusInternalServerError)
+			log.Printf("reEncryption failed: %v", err)
+			return
+		}
+		m = *m2
+	}
 
-	//	var resp *http.Response
-	//	if aliceBusy() {
-	//		rkAB, err := genReEncryptionKey(leaderId, BOB)
-	//		if err != nil {
-	//			http.Error(w, "Failed to get re-encryption key: "+err.Error(), http.StatusInternalServerError)
-	//			log.Printf("Failed to get re-encryption key: %v", err)
-	//			return
-	//		}
-	//		ct2 := pre.ReEncrypt(pp, &rkAB, ct1)
-	//		m := samba.ReEncryptedMessage{Message: *ct2}
-	//		resp, err = samba.SendMessage(m, BOB)
-	//	} else {
-	//		m := encryptedMessage
-	//		resp, err = samba.SendMessage(m, ALICE)
-	//	}
-
+	resp, err := samba.SendMessage(&m, instanceId)
 	if err != nil {
 		http.Error(w, "Message forwarding failed: "+err.Error(), http.StatusInternalServerError)
 		log.Printf("Message forwarding failed: %v", err)
@@ -198,8 +216,11 @@ func handlePublicKeyRequest(w http.ResponseWriter, req *http.Request) {
 
 	leaderId, err := getOrSetLeader(samba.FunctionId(functionId))
 	if err != nil {
-
+		http.Error(w, "Could not get or set leader: %v", http.StatusInternalServerError)
+		log.Printf("Could not get or set leader: %v", err)
+		return
 	}
+
 	leaderKeys, exists := keys[leaderId]
 	if !exists {
 		http.Error(w, "Function leader has no public key", http.StatusInternalServerError)

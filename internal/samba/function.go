@@ -77,7 +77,7 @@ func RegisterPublicKey(proxyId, instanceId InstanceId, pk *pre.PublicKey) {
 	}
 }
 
-func SendMessage(m SambaMessage, instanceId InstanceId) (response *http.Response, err error) {
+func SendMessage(m *SambaMessage, instanceId InstanceId) (response *http.Response, err error) {
 	reqBody, err := json.Marshal(m)
 	if err != nil {
 		return nil, err
