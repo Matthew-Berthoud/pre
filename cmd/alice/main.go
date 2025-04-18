@@ -16,8 +16,8 @@ const (
 )
 
 var (
-	pp    *pre.PublicParams
-	alice *pre.KeyPair
+	pp      *pre.PublicParams
+	keyPair *pre.KeyPair
 )
 
 //func genReEncryptionKey(w http.ResponseWriter, req *http.Request) {
@@ -49,13 +49,13 @@ var (
 //}
 
 func handleMessage(w http.ResponseWriter, req *http.Request) {
-	samba.HandleMessage(w, req, alice, pp)
+	samba.HandleMessage(w, req, keyPair, pp)
 }
 
 func main() {
 	pp = samba.FetchPublicParams(PROXY)
-	alice = pre.KeyGen(pp)
-	samba.RegisterPublicKey(PROXY, ALICE, alice.PK)
+	keyPair = pre.KeyGen(pp)
+	samba.RegisterPublicKey(PROXY, ALICE, keyPair.PK)
 
 	// http.HandleFunc("/requestReEncryptionKey", genReEncryptionKey)
 	http.HandleFunc("/message", handleMessage)
