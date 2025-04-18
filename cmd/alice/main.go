@@ -1,12 +1,6 @@
 package main
 
 import (
-	//"encoding/json"
-	//"io"
-	"log"
-	"net/http"
-
-	"github.com/etclab/pre"
 	"github.com/etclab/pre/internal/samba"
 )
 
@@ -15,50 +9,6 @@ const (
 	ALICE samba.InstanceId = "http://localhost:8081"
 )
 
-var (
-	pp      *pre.PublicParams
-	keyPair *pre.KeyPair
-)
-
-//func genReEncryptionKey(w http.ResponseWriter, req *http.Request) {
-//	defer req.Body.Close()
-//	body, err := io.ReadAll(req.Body)
-//	if err != nil {
-//		http.Error(w, "Failed to read request body", http.StatusBadRequest)
-//		log.Printf("Failed to read request body: %v", err)
-//		return
-//	}
-//
-//	var rkReq samba.ReEncryptionKeyRequest
-//	if err := json.Unmarshal(body, &rkReq); err != nil {
-//		http.Error(w, "Invalid request format", http.StatusBadRequest)
-//		log.Printf("Invalid request format: %v", err)
-//		return
-//	}
-//
-//	rkAB := pre.ReEncryptionKeyGen(pp, alice.SK, &rkReq.PublicKey)
-//	response := samba.ReEncryptionKeyMessage{
-//		InstanceId:      BOB,
-//		ReEncryptionKey: *rkAB,
-//	}
-//
-//	w.Header().Set("Content-Type", "application/json")
-//	if err := json.NewEncoder(w).Encode(response); err != nil {
-//		log.Printf("Failed to encode response: %v", err)
-//	}
-//}
-
-func handleMessage(w http.ResponseWriter, req *http.Request) {
-	samba.HandleMessage(w, req, keyPair, pp)
-}
-
 func main() {
-	pp = samba.FetchPublicParams(PROXY)
-	keyPair = pre.KeyGen(pp)
-	samba.RegisterPublicKey(PROXY, ALICE, keyPair.PK)
-
-	// http.HandleFunc("/requestReEncryptionKey", genReEncryptionKey)
-	http.HandleFunc("/message", handleMessage)
-	log.Println("Alice service running on :8081")
-	log.Fatal(http.ListenAndServe(":8081", nil))
+	samba.BootFunction(ALICE, PROXY)
 }

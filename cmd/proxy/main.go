@@ -126,8 +126,8 @@ func getOrSetLeader(functionId samba.FunctionId) (samba.InstanceId, error) {
 }
 
 func getAvailabileInstance(functionId samba.FunctionId) samba.InstanceId {
-	//return ALICE
-	return BOB
+	return ALICE
+	//return BOB
 }
 
 func reEncrypt(m1 *samba.SambaMessage, leaderId, instanceId samba.InstanceId) (*samba.SambaMessage, error) {

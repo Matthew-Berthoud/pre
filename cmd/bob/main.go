@@ -1,18 +1,12 @@
 package main
 
-//import (
-//	"encoding/json"
-//	"io"
-//	"log"
-//	"net/http"
-//
-//	"github.com/etclab/pre"
-//	"github.com/etclab/pre/internal/samba"
-//)
-//
-//const BOB samba.InstanceId = "http://localhost:8082"
-//const PROXY samba.InstanceId = "http://localhost:8080"
-//
+import (
+	"github.com/etclab/pre/internal/samba"
+)
+
+const BOB samba.InstanceId = "http://localhost:8082"
+const PROXY samba.InstanceId = "http://localhost:8080"
+
 //var (
 //	pp  *pre.PublicParams
 //	bob *pre.KeyPair
@@ -54,6 +48,7 @@ package main
 //}
 
 func main() {
+	samba.BootFunction(BOB, PROXY)
 	// // Handshake (get public parameters, send back public key)
 	// pp = samba.FetchPublicParams(PROXY)
 	// bob = pre.KeyGen(pp)
