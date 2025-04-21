@@ -10,10 +10,8 @@ import (
 	"github.com/etclab/pre"
 )
 
-var (
-	pp      *pre.PublicParams
-	keyPair *pre.KeyPair
-)
+var keyPair *pre.KeyPair
+var publicParams *pre.PublicParams
 
 func genReEncryptionKey(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
@@ -38,7 +36,7 @@ func genReEncryptionKey(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	rkAB := pre.ReEncryptionKeyGen(pp, keyPair.SK, &pk)
+	rkAB := pre.ReEncryptionKeyGen(publicParams, keyPair.SK, &pk)
 	rks := SerializeReEncryptionKey(*rkAB)
 	response := ReEncryptionKeyMessage{
 		InstanceId:                rkReq.InstanceId,
@@ -52,7 +50,7 @@ func genReEncryptionKey(w http.ResponseWriter, req *http.Request) {
 }
 
 func handleMessage(w http.ResponseWriter, req *http.Request) {
-	HandleMessage(w, req, keyPair, pp)
+	HandleMessage(w, req, keyPair, publicParams)
 }
 
 func port(id InstanceId) string {
@@ -61,8 +59,8 @@ func port(id InstanceId) string {
 }
 
 func BootFunction(selfId, proxyId InstanceId) {
-	pp = FetchPublicParams(proxyId)
-	keyPair = pre.KeyGen(pp)
+	publicParams = FetchPublicParams(proxyId)
+	keyPair = pre.KeyGen(publicParams)
 	RegisterPublicKey(proxyId, selfId, keyPair.PK)
 
 	http.HandleFunc("/requestReEncryptionKey", genReEncryptionKey)

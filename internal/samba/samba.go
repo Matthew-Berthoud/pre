@@ -4,20 +4,6 @@ import (
 	"github.com/etclab/pre"
 )
 
-/*
-The proxy needs to maintain two dictionaries:
-- function -> cur leader (instance ID)
-- instance id -> pubkey, re-encrypt key
-
-Message types:
-(also need A's public key I think)
-1. B -> P: registerPubKey(Bid, Bpubkey)
-2. P -> A: genReencryptionKey(Bid, Bpubkey)
-3. A -> P: registerReencryptionKey(Bid, RkAB)
-4. B -> P: get Reenctyptionkey(Bid) ??? do we need this
-
-*/
-
 type InstanceId string // represents a url for now, potentially change to uint
 type FunctionId uint
 

@@ -1,31 +1,26 @@
 package main
 
 import (
-	//"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 
-	//"log"
-	//"net/http"
-
 	"github.com/etclab/pre"
 	"github.com/etclab/pre/internal/samba"
 )
 
-const PROXY samba.InstanceId = "http://localhost:8080"
-const FUNCTION_ID samba.FunctionId = 123
-
 func main() {
+	var proxyId samba.InstanceId = "http://localhost:8080"
+	var functionId samba.FunctionId = 123
 
 	message := []byte("Hello, World!")
 
 	// request public params from proxy
-	pp := samba.FetchPublicParams(PROXY)
+	pp := samba.FetchPublicParams(proxyId)
 
 	// request function leader's public key from proxy
-	alicePK := samba.FetchPublicKey(PROXY, FUNCTION_ID)
+	alicePK := samba.FetchPublicKey(proxyId, functionId)
 
 	m := pre.RandomGt()
 	ct1 := pre.Encrypt(pp, m, alicePK)
@@ -38,12 +33,12 @@ func main() {
 	}
 
 	req := samba.SambaMessage{
-		Target:        FUNCTION_ID,
+		Target:        functionId,
 		IsReEncrypted: false,
 		WrappedKey1:   ct1s,
 		Ciphertext:    ct,
 	}
-	resp, err := samba.SendMessage(&req, PROXY)
+	resp, err := samba.SendMessage(&req, proxyId)
 	if err != nil {
 		log.Fatalf("Sending to proxy failed: %v", err)
 	}

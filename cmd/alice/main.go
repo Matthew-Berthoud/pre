@@ -4,11 +4,8 @@ import (
 	"github.com/etclab/pre/internal/samba"
 )
 
-const (
-	PROXY samba.InstanceId = "http://localhost:8080"
-	ALICE samba.InstanceId = "http://localhost:8081"
-)
-
 func main() {
-	samba.BootFunction(ALICE, PROXY)
+	var proxyId samba.InstanceId = "http://localhost:8080"
+	var aliceId samba.InstanceId = "http://localhost:8081"
+	samba.BootFunction(aliceId, proxyId)
 }
