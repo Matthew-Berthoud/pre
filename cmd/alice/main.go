@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/etclab/pre/internal/samba"
+	"github.com/etclab/samba"
 )
 
 func main() {

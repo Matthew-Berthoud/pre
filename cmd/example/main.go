@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/etclab/pre"
+	"github.com/etclab/samba"
 )
 
 func main() {
@@ -24,17 +25,17 @@ func main() {
 	fmt.Println(m1.IsEqual(m2))
 
 	key := pre.KdfGtToAes256(m)
-	ct := pre.AESGCMEncrypt(key, []byte("Hello, World!"))
+	ct := samba.AESGCMEncrypt(key, []byte("Hello, World!"))
 
 	key1 := pre.KdfGtToAes256(m1)
-	pt1, err := pre.AESGCMDecrypt(key1, ct)
+	pt1, err := samba.AESGCMDecrypt(key1, ct)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(string(pt1))
 
 	key2 := pre.KdfGtToAes256(m2)
-	pt2, err := pre.AESGCMDecrypt(key2, ct)
+	pt2, err := samba.AESGCMDecrypt(key2, ct)
 	if err != nil {
 		panic(err)
 	}

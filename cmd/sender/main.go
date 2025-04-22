@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/etclab/pre"
-	"github.com/etclab/pre/internal/samba"
+	"github.com/etclab/samba"
 )
 
 func main() {
