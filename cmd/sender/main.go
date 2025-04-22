@@ -26,7 +26,7 @@ func main() {
 	ct1 := pre.Encrypt(pp, m, alicePK)
 
 	key := pre.KdfGtToAes256(m)
-	ct := pre.AESGCMEncrypt(key, message)
+	ct := samba.AESGCMEncrypt(key, message)
 	ct1s, err := samba.SerializeCiphertext1(*ct1)
 	if err != nil {
 		log.Fatalf("Failed to serialize: %v", err)
