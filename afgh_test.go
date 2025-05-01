@@ -31,6 +31,13 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
+func BenchmarkRandomGt(b *testing.B) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		blackhole = RandomGt()
+	}
+}
+
 func BenchmarkEncrypt(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
